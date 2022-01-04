@@ -1,4 +1,5 @@
 using System.Collections;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -14,7 +15,95 @@ public class MenuUI : MonoBehaviour
     [SerializeField] Text scoreText;
     [SerializeField] GameObject gameOverMenu;
     [SerializeField] MainManager MainManager;
+    
+    [SerializeField] Transform entryTemplate;
+    private List<Transform> HighscoreEntryTransformList;
 
+    private void Awake()
+    {
+        //exit if nothing is asging
+        if (entryTemplate == null)
+        {
+            return;
+        }
+
+        //trun off the inital template
+        entryTemplate.gameObject.SetActive(false);
+    }
+
+    public void LoadHighscores()
+    {
+        string jsonString = PlayerPrefs.GetString("highscoreTable");
+        Highscores highscores = JsonUtility.FromJson<Highscores>(jsonString);
+
+        if (highscores == null)
+        {
+            // There's no stored table, initialize
+            highscores = new Highscores()
+            {
+                HighscoreEntryList = new List<HighscoreEntry>()
+            };
+        }
+
+        //create new list
+        HighscoreEntryTransformList = new List<Transform>();
+
+        // add enteris to list and show them
+        foreach (HighscoreEntry HighscoreEntry in highscores.HighscoreEntryList)
+        {
+            createHighscoreEnrtyTransform(HighscoreEntry,HighscoreEntryTransformList);
+        }
+    }
+
+    private void createHighscoreEnrtyTransform(HighscoreEntry HighscoreEntry, List<Transform> transformList)
+    {
+        //step height
+        float templateHeight = 25f;
+        //copy the template and save as variable
+        Transform entryTransform = Instantiate(entryTemplate, entryTemplate.parent);
+        //save its rectTransform as variable
+        RectTransform entryRectTransform = entryTransform.GetComponent<RectTransform>();
+        //move each template down
+        entryRectTransform.anchoredPosition = new Vector2(0, -templateHeight * transformList.Count);
+        //trun it on
+        entryTransform.gameObject.SetActive(true);
+
+        //add 1 to rank so it want begin from zero
+        int rank = transformList.Count + 1;
+        string rankString;
+        // change the rank number to pretty text
+        switch (rank)
+        {
+            default:
+                rankString = rank + "TH"; break;
+
+            case 1: rankString = "1ST"; break;
+            case 2: rankString = "2ND"; break;
+            case 3: rankString = "3RD"; break;
+        }
+
+        // set the rank to the text
+        entryTransform.Find("rank").GetComponent<Text>().text = rankString;
+        // set the name to text
+        entryTransform.Find("name").GetComponent<Text>().text = HighscoreEntry.name;
+        // get and set the score to text
+        int score = HighscoreEntry.score;
+        entryTransform.Find("score").GetComponent<Text>().text = score.ToString();
+        // add a single entry to the list
+        transformList.Add(entryTransform);
+    }
+
+    private class Highscores
+    {
+        public List<HighscoreEntry> HighscoreEntryList;
+    }
+
+    [System.Serializable]
+    private class HighscoreEntry
+    {
+        public int score;
+        public string name;
+    }
 
     public void LoadMenu()
     {
@@ -23,16 +112,18 @@ public class MenuUI : MonoBehaviour
 
     public void LoadMain()
     {
-        if (playerName != null)
+        if (!String.IsNullOrEmpty(playerName.text))
         {
             MainManager.playerName = playerName.text;
+            SceneManager.LoadScene("main");
+        } else
+        {
+            Debug.Log("MUST ENTER NAME");
         }
-        SceneManager.LoadScene("main");
     }
 
     public void Exit()
     {
-        // ==> on exit save user data here <==
         #if UNITY_EDITOR
             EditorApplication.ExitPlaymode();
         #else

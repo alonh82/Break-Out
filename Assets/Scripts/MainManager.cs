@@ -1,8 +1,9 @@
-using System.Collections;
+//using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
+//using UnityEngine.UI;
+using System.IO;
 
 public class MainManager : MonoBehaviour
 {
@@ -13,36 +14,34 @@ public class MainManager : MonoBehaviour
     [SerializeField] private MenuUI MenuUI;
 
     public static string playerName;
-    public static string highscorePlayer;
-    public static int highscore;
 
     private bool m_Started;
     private int m_Points;
     private bool m_GameOver;
-    private string sceneName;  
+    private string sceneName;
+    private List<HighscoreEntry> HighscoreEntryList;
+    private Highscores highscores;
+    private int number = 5;
 
     private void Awake()
     {
+        LoadHighscores();
+
         sceneName = SceneManager.GetActiveScene().name;
         if (sceneName == "main")
         {
             m_GameOver = false;
             m_Started = false;
-            //Ball = GameObject.FindGameObjectWithTag("Ball").GetComponent<Rigidbody>();
-            //MenuUI = GameObject.FindGameObjectWithTag("MenuUI").GetComponent<MenuUI>();
             MenuUI.showGameOverMenu(false);
             makeBricks();
+
+            Debug.Log("Player: " + playerName);
         }
 
-        MenuUI.setMainHighscoreText(highscorePlayer, highscore);
-        // => load data from file here <=
-        //if (Instance != null)
-        //{
-        //    Destroy(gameObject);
-        //    return;
-        //}
-        //Instance = this;
-        //DontDestroyOnLoad(gameObject);
+        if (sceneName == "menu")
+        {
+            MenuUI.LoadHighscores();
+        } 
     }
 
     // Start is called before the first frame update
@@ -68,19 +67,16 @@ public class MainManager : MonoBehaviour
     {
         if (sceneName == "main" && !m_Started)
         {
-            //if (!m_Started)
-            //{
-                if (Input.GetKeyDown(KeyCode.Space))
-                {
-                    m_Started = true;
-                    float randomDirection = Random.Range(-1.0f, 1.0f);
-                    Vector3 forceDir = new Vector3(randomDirection, 1, 0);
-                    forceDir.Normalize();
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                m_Started = true;
+                float randomDirection = Random.Range(-1.0f, 1.0f);
+                Vector3 forceDir = new Vector3(randomDirection, 1, 0);
+                forceDir.Normalize();
 
-                    Ball.transform.SetParent(null);
-                    Ball.AddForce(forceDir * 2.0f, ForceMode.VelocityChange);
-                }
-            //}
+                Ball.transform.SetParent(null);
+                Ball.AddForce(forceDir * 2.0f, ForceMode.VelocityChange);
+            }
         }
     }
 
@@ -94,13 +90,81 @@ public class MainManager : MonoBehaviour
     public void GameOver()
     {
         m_GameOver = true;
-        if (m_Points > highscore)
+
+        AddHighscoreEntry(m_Points, playerName);
+        MenuUI.showGameOverMenu(true);
+    }
+
+
+    private void LoadHighscores()
+    {
+        //PlayerPrefs.DeleteKey("highscoreTable");
+        string jsonString = PlayerPrefs.GetString("highscoreTable");
+        highscores = JsonUtility.FromJson<Highscores>(jsonString);
+
+        if (highscores == null)
         {
-            highscore = m_Points;
-            highscorePlayer = playerName;
+            // There's no stored table, initialize
+            highscores = new Highscores()
+            {
+                HighscoreEntryList = new List<HighscoreEntry>()
+            };
+        }
+    }
+
+    private void AddHighscoreEntry(int score, string name)
+    {
+        // Create HighscoreEntry
+        HighscoreEntry highscoreEntry = new HighscoreEntry { score = score, name = name };
+
+        // Add new entry to Highscores
+        highscores.HighscoreEntryList.Add(highscoreEntry);
+        SortHighscores();
+        SaveHighscores();
+    }
+
+    private void SaveHighscores()
+    {
+        // Save updated Highscores
+        string json = JsonUtility.ToJson(highscores);
+        PlayerPrefs.SetString("highscoreTable", json);
+        PlayerPrefs.Save();
+    }
+
+    private void SortHighscores()
+    {
+        //sort the list by score
+        for (int i = 0; i < highscores.HighscoreEntryList.Count; i++)
+        {
+            for (int j = i + 1; j < highscores.HighscoreEntryList.Count; j++)
+            {
+                if (highscores.HighscoreEntryList[j].score > highscores.HighscoreEntryList[i].score)
+                {
+                    //swap places
+                    HighscoreEntry tmp = highscores.HighscoreEntryList[i];
+                    highscores.HighscoreEntryList[i] = highscores.HighscoreEntryList[j];
+                    highscores.HighscoreEntryList[j] = tmp;
+                }
+            }
         }
 
-        MenuUI.showGameOverMenu(true);
-        MenuUI.setMainHighscoreText(highscorePlayer, highscore);
+        Debug.Log("Enteries: " + highscores.HighscoreEntryList.Count);
+        if (highscores.HighscoreEntryList.Count > 10)
+        {
+            highscores.HighscoreEntryList.RemoveRange(9, highscores.HighscoreEntryList.Count - 10);
+        }
+    }
+
+    private class Highscores
+    {
+        public List<HighscoreEntry> HighscoreEntryList;
+    }
+
+    //represents a single high score entry
+    [System.Serializable]
+    private class HighscoreEntry
+    {
+        public int score;
+        public string name;
     }
 }
