@@ -25,6 +25,7 @@ public class MainManager : MonoBehaviour
 
     private void Awake()
     {
+        //PlayerPrefs.DeleteAll();
         LoadHighscores();
 
         sceneName = SceneManager.GetActiveScene().name;
@@ -37,11 +38,15 @@ public class MainManager : MonoBehaviour
 
             Debug.Log("Player: " + playerName);
         }
+    }
 
+    private void Start()
+    {
         if (sceneName == "menu")
         {
             MenuUI.LoadHighscores();
-        } 
+            MenuUI.setMenuHighscoreText();
+        }
     }
 
     // Start is called before the first frame update
@@ -84,15 +89,18 @@ public class MainManager : MonoBehaviour
     {
         m_Points += point;
         MenuUI.setCurrentScoreText(m_Points);
-        //ScoreText.text = $"Score: {m_Points}";
     }
 
     public void GameOver()
     {
         m_GameOver = true;
-
         AddHighscoreEntry(m_Points, playerName);
+        if (getEntryIndex() > -1)
+        {
+            Debug.Log("YOU ARE ON THE BOARD!");
+        };
         MenuUI.showGameOverMenu(true);
+        MenuUI.setMainHighscoreText(highscores.HighscoreEntryList[0].name, highscores.HighscoreEntryList[0].score);
     }
 
 
@@ -151,8 +159,20 @@ public class MainManager : MonoBehaviour
         Debug.Log("Enteries: " + highscores.HighscoreEntryList.Count);
         if (highscores.HighscoreEntryList.Count > 10)
         {
-            highscores.HighscoreEntryList.RemoveRange(9, highscores.HighscoreEntryList.Count - 10);
+            highscores.HighscoreEntryList.RemoveAt(10); //RemoveRange(9, highscores.HighscoreEntryList.Count - 10);
         }
+    }
+
+    private int getEntryIndex()
+    {
+        for (int i = 0; i < highscores.HighscoreEntryList.Count; i++)
+        {
+            if (highscores.HighscoreEntryList[i].name == playerName && highscores.HighscoreEntryList[i].score == m_Points)
+            {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private class Highscores

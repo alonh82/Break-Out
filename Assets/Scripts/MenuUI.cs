@@ -11,13 +11,15 @@ using UnityEditor;
 public class MenuUI : MonoBehaviour
 {
     [SerializeField] Text playerName;
+    [SerializeField] Text namePlacehoder;
     [SerializeField] GameObject highscore;
     [SerializeField] Text scoreText;
     [SerializeField] GameObject gameOverMenu;
     [SerializeField] MainManager MainManager;
-    
+
     [SerializeField] Transform entryTemplate;
     private List<Transform> HighscoreEntryTransformList;
+    private Highscores highscores;
 
     private void Awake()
     {
@@ -34,7 +36,7 @@ public class MenuUI : MonoBehaviour
     public void LoadHighscores()
     {
         string jsonString = PlayerPrefs.GetString("highscoreTable");
-        Highscores highscores = JsonUtility.FromJson<Highscores>(jsonString);
+        highscores = JsonUtility.FromJson<Highscores>(jsonString);
 
         if (highscores == null)
         {
@@ -89,6 +91,11 @@ public class MenuUI : MonoBehaviour
         // get and set the score to text
         int score = HighscoreEntry.score;
         entryTransform.Find("score").GetComponent<Text>().text = score.ToString();
+        
+        if (rank % 2 == 1)
+        {
+            entryTransform.Find("bg").GetComponent<Image>().color = new Color32(210, 210, 210, 255);
+        }
         // add a single entry to the list
         transformList.Add(entryTransform);
     }
@@ -112,14 +119,18 @@ public class MenuUI : MonoBehaviour
 
     public void LoadMain()
     {
-        if (!String.IsNullOrEmpty(playerName.text))
+        if (playerName)
         {
-            MainManager.playerName = playerName.text;
-            SceneManager.LoadScene("main");
-        } else
-        {
-            Debug.Log("MUST ENTER NAME");
+            if (!String.IsNullOrEmpty(playerName.text))
+            {
+                MainManager.playerName = playerName.text;
+            } else
+            {
+                namePlacehoder.text = "MUST ENTER NAME";
+                return;
+            } 
         }
+        SceneManager.LoadScene("main");
     }
 
     public void Exit()
@@ -152,10 +163,24 @@ public class MenuUI : MonoBehaviour
         if (score > 0)
         {
             highscore.SetActive(true);
-            highscore.GetComponent<Text>().text = "HIGHSCORE - " + name + " " + score.ToString(); 
+            highscore.GetComponent<Text>().text = "BEST: " + name + " " + score.ToString(); 
         } else
         {
             highscore.SetActive(false);
         }
+    }
+
+    public void setMenuHighscoreText()
+    {
+        if (highscores.HighscoreEntryList.Count > 0)
+        {
+            highscore.SetActive(true);
+            highscore.GetComponent<Text>().text = "BEST: " + highscores.HighscoreEntryList[0].name + " " + highscores.HighscoreEntryList[0].score;
+        }
+        else
+        {
+            highscore.SetActive(false);
+        }
+
     }
 }

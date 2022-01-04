@@ -1764,6 +1764,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerName: {fileID: 1717525711}
+  namePlacehoder: {fileID: 687499421}
   highscore: {fileID: 1464007473}
   scoreText: {fileID: 0}
   gameOverMenu: {fileID: 0}
